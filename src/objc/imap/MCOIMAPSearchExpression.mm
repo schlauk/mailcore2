@@ -57,11 +57,30 @@
     [super dealloc];
 }
 
++ (MCOIMAPSearchExpression *) searchAll
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchAll());
+}
+
 + (MCOIMAPSearchExpression *) searchFrom:(NSString *)value
 {
     return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchFrom([value mco_mcString]));
 }
 
++ (MCOIMAPSearchExpression *) searchTo:(NSString *)value
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchTo([value mco_mcString]));
+}
+
++ (MCOIMAPSearchExpression *) searchCc:(NSString *)value
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchCc([value mco_mcString]));
+}
+
++ (MCOIMAPSearchExpression *) searchBcc:(NSString *)value
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchBcc([value mco_mcString]));
+}
 + (MCOIMAPSearchExpression *) searchRecipient:(NSString *)value
 {
     return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchRecipient([value mco_mcString]));
@@ -77,9 +96,113 @@
     return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchContent([value mco_mcString]));
 }
 
++ (MCOIMAPSearchExpression *) searchUIDs:(MCOIndexSet *) uids
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchUIDs(MCO_FROM_OBJC(mailcore::IndexSet, uids)));
+}
 + (MCOIMAPSearchExpression *) searchHeader:(NSString *)header value:(NSString *)value
 {
     return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchHeader([header mco_mcString], [value mco_mcString]));
+}
+
++ (MCOIMAPSearchExpression *) searchRead
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchRead());
+}
+
++ (MCOIMAPSearchExpression *) searchUnread
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchUnread());
+}
+
++ (MCOIMAPSearchExpression *) searchFlagged
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchFlagged());
+}
+
++ (MCOIMAPSearchExpression *) searchUnflagged
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchUnflagged());
+}
+
++ (MCOIMAPSearchExpression *) searchAnswered
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchAnswered());
+}
+
++ (MCOIMAPSearchExpression *) searchUnanswered
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchUnanswered());
+}
+
++ (MCOIMAPSearchExpression *) searchDraft
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchDraft());
+}
+
++ (MCOIMAPSearchExpression *) searchUndraft
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchUndraft());
+}
+
++ (MCOIMAPSearchExpression *) searchDeleted
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchDeleted());
+}
+
++ (MCOIMAPSearchExpression *) searchSpam
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchSpam());
+}
+
++ (MCOIMAPSearchExpression *) searchBeforeDate:(NSDate *)date
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchBeforeDate((time_t) [date timeIntervalSince1970]));
+}
+
++ (MCOIMAPSearchExpression *) searchOnDate:(NSDate *)date
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchOnDate((time_t) [date timeIntervalSince1970]));
+}
+
++ (MCOIMAPSearchExpression *) searchSinceDate:(NSDate *)date
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchSinceDate((time_t) [date timeIntervalSince1970]));
+}
+
++ (MCOIMAPSearchExpression *) searchBeforeReceivedDate:(NSDate *)date
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchBeforeReceivedDate((time_t) [date timeIntervalSince1970]));
+}
+
++ (MCOIMAPSearchExpression *) searchOnReceivedDate:(NSDate *)date
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchOnReceivedDate((time_t) [date timeIntervalSince1970]));
+}
+
++ (MCOIMAPSearchExpression *) searchSinceReceivedDate:(NSDate *)date
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchSinceReceivedDate((time_t) [date timeIntervalSince1970]));
+}
+
++ (MCOIMAPSearchExpression *) searchSizeLargerThan:(uint32_t)size
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchSizeLarger(size));
+}
+
++ (MCOIMAPSearchExpression *) searchSizeSmallerThan:(uint32_t)size
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchSizeSmaller(size));
+}
+
++ (MCOIMAPSearchExpression *) searchGmailThreadID:(uint64_t)number
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchGmailThreadID(number));
+}
+
++ (MCOIMAPSearchExpression *) searchGmailRaw:(NSString *)expr
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchGmailRaw([expr mco_mcString]));
 }
 
 + (MCOIMAPSearchExpression *) searchAnd:(MCOIMAPSearchExpression *)expression other:(MCOIMAPSearchExpression *)other

@@ -11,6 +11,7 @@
 using namespace mailcore;
 
 namespace mailcore {
+    
     class SMTPOperationQueueCallback  : public Object, public OperationQueueCallback {
     public:
         SMTPOperationQueueCallback(SMTPAsyncSession * session) {
@@ -50,6 +51,7 @@ namespace mailcore {
     private:
         SMTPAsyncSession * mSession;
     };
+    
 }
 
 SMTPAsyncSession::SMTPAsyncSession()
@@ -270,3 +272,15 @@ void SMTPAsyncSession::logConnection(ConnectionLogType logType, Data * buffer)
     }
     pthread_mutex_unlock(&mConnectionLoggerLock);
 }
+
+#if __APPLE__
+void SMTPAsyncSession::setDispatchQueue(dispatch_queue_t dispatchQueue)
+{
+    mQueue->setDispatchQueue(dispatchQueue);
+}
+
+dispatch_queue_t SMTPAsyncSession::dispatchQueue()
+{
+    return mQueue->dispatchQueue();
+}
+#endif

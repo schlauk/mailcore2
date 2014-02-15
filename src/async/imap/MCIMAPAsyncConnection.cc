@@ -43,7 +43,8 @@
 using namespace mailcore;
 
 namespace mailcore {
-    class IMAPOperationQueueCallback  : public Object, public OperationQueueCallback {
+    
+    class IMAPOperationQueueCallback : public Object, public OperationQueueCallback {
     public:
         IMAPOperationQueueCallback(IMAPAsyncConnection * connection) {
             mConnection = connection;
@@ -86,6 +87,7 @@ namespace mailcore {
     private:
         IMAPAsyncConnection * mConnection;
     };
+    
 }
 
 IMAPAsyncConnection::IMAPAsyncConnection()
@@ -103,6 +105,7 @@ IMAPAsyncConnection::IMAPAsyncConnection()
     mInternalLogger = new IMAPConnectionLogger(this);
     mAutomaticConfigurationEnabled = true;
     mQueueRunning = false;
+    mScheduledAutomaticDisconnect = false;
 }
 
 IMAPAsyncConnection::~IMAPAsyncConnection()
@@ -324,13 +327,14 @@ IMAPOperation * IMAPAsyncConnection::unsubscribeFolderOperation(String * folder)
     return op;
 }
 
-IMAPAppendMessageOperation * IMAPAsyncConnection::appendMessageOperation(String * folder, Data * messageData, MessageFlag flags)
+IMAPAppendMessageOperation * IMAPAsyncConnection::appendMessageOperation(String * folder, Data * messageData, MessageFlag flags, Array * customFlags)
 {
     IMAPAppendMessageOperation * op = new IMAPAppendMessageOperation();
     op->setSession(this);
     op->setFolder(folder);
     op->setMessageData(messageData);
     op->setFlags(flags);
+    op->setCustomFlags(customFlags);
     op->autorelease();
     return op;
 }
@@ -417,7 +421,7 @@ IMAPFetchContentOperation * IMAPAsyncConnection::fetchMessageAttachmentByUIDOper
     return op;
 }
 
-IMAPOperation * IMAPAsyncConnection::storeFlagsOperation(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, MessageFlag flags)
+IMAPOperation * IMAPAsyncConnection::storeFlagsOperation(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, MessageFlag flags, Array * customFlags)
 {
     IMAPStoreFlagsOperation * op = new IMAPStoreFlagsOperation();
     op->setSession(this);
@@ -425,6 +429,7 @@ IMAPOperation * IMAPAsyncConnection::storeFlagsOperation(String * folder, IndexS
     op->setUids(uids);
     op->setKind(kind);
     op->setFlags(flags);
+    op->setCustomFlags(customFlags);
     op->autorelease();
     return op;
 }
@@ -529,6 +534,14 @@ IMAPQuotaOperation * IMAPAsyncConnection::quotaOperation()
     return op;
 }
 
+IMAPOperation * IMAPAsyncConnection::disconnectOperation()
+{
+    IMAPDisconnectOperation * op = new IMAPDisconnectOperation();
+    op->setSession(this);
+    op->autorelease();
+    return op;
+}
+
 IMAPSession * IMAPAsyncConnection::session()
 {
     return mSession;
@@ -552,16 +565,28 @@ void IMAPAsyncConnection::tryAutomaticDisconnect()
         return;
     }
     
-    cancelDelayedPerformMethod((Object::Method) &IMAPAsyncConnection::tryAutomaticDisconnectAfterDelay, NULL);
+    bool scheduledAutomaticDisconnect = mScheduledAutomaticDisconnect;
+    if (scheduledAutomaticDisconnect) {
+        cancelDelayedPerformMethod((Object::Method) &IMAPAsyncConnection::tryAutomaticDisconnectAfterDelay, NULL);
+    }
+    
+    mOwner->retain();
+    mScheduledAutomaticDisconnect = true;
     performMethodAfterDelay((Object::Method) &IMAPAsyncConnection::tryAutomaticDisconnectAfterDelay, NULL, 30);
+    
+    if (scheduledAutomaticDisconnect) {
+        mOwner->release();
+    }
 }
 
 void IMAPAsyncConnection::tryAutomaticDisconnectAfterDelay(void * context)
 {
-    IMAPDisconnectOperation * op = new IMAPDisconnectOperation();
-    op->setSession(this);
-    op->autorelease();
+    mScheduledAutomaticDisconnect = false;
+    
+    IMAPOperation * op = disconnectOperation();
     op->start();
+    
+    mOwner->release();
 }
 
 void IMAPAsyncConnection::queueStartRunning()
@@ -661,9 +686,12 @@ IMAPMessageRenderingOperation * IMAPAsyncConnection::plainTextRenderingOperation
 }
 
 IMAPMessageRenderingOperation * IMAPAsyncConnection::plainTextBodyRenderingOperation(IMAPMessage * message,
-                                                                                     String * folder)
+                                                                                     String * folder,
+                                                                                     bool stripWhitespace)
 {
-    return renderingOperation(message, folder, IMAPMessageRenderingTypePlainTextBody);
+    return renderingOperation(message, folder,
+                              stripWhitespace ? IMAPMessageRenderingTypePlainTextBodyAndStripWhitespace :
+                                                IMAPMessageRenderingTypePlainTextBody);
 }
 
 void IMAPAsyncConnection::setAutomaticConfigurationEnabled(bool enabled)
@@ -686,3 +714,15 @@ void IMAPAsyncConnection::setQueueRunning(bool running)
 {
     mQueueRunning = running;
 }
+
+#if __APPLE__
+void IMAPAsyncConnection::setDispatchQueue(dispatch_queue_t dispatchQueue)
+{
+    mQueue->setDispatchQueue(dispatchQueue);
+}
+
+dispatch_queue_t IMAPAsyncConnection::dispatchQueue()
+{
+    return mQueue->dispatchQueue();
+}
+#endif

@@ -15,8 +15,8 @@ using namespace mailcore;
 
 OperationQueue::OperationQueue()
 {
-	mOperations = new Array();
-	mStarted = false;
+    mOperations = new Array();
+    mStarted = false;
     pthread_mutex_init(&mLock, NULL);
     mWaiting = false;
     mOperationSem = mailsem_new();
@@ -25,6 +25,9 @@ OperationQueue::OperationQueue()
     mWaitingFinishedSem = mailsem_new();
     mQuitting = false;
     mCallback = NULL;
+#if __APPLE__
+    mDispatchQueue = dispatch_get_main_queue();
+#endif
 }
 
 OperationQueue::~OperationQueue()
@@ -78,7 +81,11 @@ void OperationQueue::runOperations()
             mailsem_up(mStopSem);
             
             retain(); // (2)
+#if __APPLE__
+            performMethodOnDispatchQueue((Object::Method) &OperationQueue::stoppedOnMainThread, NULL, mDispatchQueue, true);
+#else
             performMethodOnMainThread((Object::Method) &OperationQueue::stoppedOnMainThread, NULL, true);
+#endif
             
             pool->release();
             break;
@@ -107,7 +114,11 @@ void OperationQueue::runOperations()
         if (needsCheckRunning) {
             retain(); // (1)
             MCLog("check running %p", this);
+#if __APPLE__
+            performMethodOnDispatchQueue((Object::Method) &OperationQueue::checkRunningOnMainThread, this, mDispatchQueue);
+#else
             performMethodOnMainThread((Object::Method) &OperationQueue::checkRunningOnMainThread, this);
+#endif
         }
         
         pool->release();
@@ -122,7 +133,7 @@ void OperationQueue::performOnCallbackThread(Operation * op, Method method, void
     if (queue == NULL) {
         queue = dispatch_get_main_queue();
     }
-    performMethodOnDispatchQueue(method, context, op->callbackDispatchQueue(), waitUntilDone);
+    performMethodOnDispatchQueue(method, context, queue, waitUntilDone);
 #else
     performMethodOnMainThread(method, context, waitUntilDone);
 #endif
@@ -237,5 +248,17 @@ void OperationQueue::waitUntilAllOperationsAreFinished()
         sem_wait(&mWaitingFinishedSem);
     }
     mWaiting = false;
+}
+#endif
+
+#if __APPLE__
+void OperationQueue::setDispatchQueue(dispatch_queue_t dispatchQueue)
+{
+    mDispatchQueue = dispatchQueue;
+}
+
+dispatch_queue_t OperationQueue::dispatchQueue()
+{
+    return mDispatchQueue;
 }
 #endif

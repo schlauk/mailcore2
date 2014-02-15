@@ -72,6 +72,9 @@ typedef enum {
     MCOIMAPFolderFlagJunk        = MCOIMAPFolderFlagSpam,
     /** \Flagged: When the folder contains all the flagged emails.*/
     MCOIMAPFolderFlagFlagged     = MCOIMAPFolderFlagStarred,
+    /** Mask to identify the folder */
+    MCOIMAPFolderFlagFolderTypeMask = MCOIMAPFolderFlagInbox | MCOIMAPFolderFlagSentMail | MCOIMAPFolderFlagStarred | MCOIMAPFolderFlagAllMail |
+      MCOIMAPFolderFlagTrash| MCOIMAPFolderFlagDrafts | MCOIMAPFolderFlagSpam | MCOIMAPFolderFlagImportant | MCOIMAPFolderFlagArchive,
 } MCOIMAPFolderFlag;
 
 /** It's the flags of a message.*/
@@ -142,6 +145,9 @@ typedef enum {
     MCOIMAPMessagesRequestKindGmailThreadID  = 1 << 8,
     /** Extra Headers.*/
     MCOIMAPMessagesRequestKindExtraHeaders   = 1 << 9,
+    /* Request size of message */
+    MCOIMAPMessagesRequestKindSize           = 1 << 10,
+
 } MCOIMAPMessagesRequestKind;
 
 /** It defines the behavior of the STORE flags request.*/
@@ -156,18 +162,30 @@ typedef enum {
 
 /** It's the search type.*/
 typedef enum {
+    /** Search All */
+    MCOIMAPSearchKindAll,
     /** No search.*/
     MCOIMAPSearchKindNone,
     /** Match sender.*/
     MCOIMAPSearchKindFrom,
+    /** Match to */
+    MCOIMAPSearchKindTo,
+    /** Match CC: */
+    MCOIMAPSearchKindCc,
+    /** Match BCC: */
+    MCOIMAPSearchKindBcc,
     /** Match recipient.*/
     MCOIMAPSearchKindRecipient,
     /** Match subject.*/
     MCOIMAPSearchKindSubject,
     /** Match content of the message.*/
     MCOIMAPSearchKindContent,
+    /** Match uids */
+    MCOIMAPSearchKindUids,
     /** Match headers of the message.*/
     MCOIMAPSearchKindHeader,
+    /** Match X-GM-THRID.*/
+    MCOIMAPSearchGmailThreadID,
     /** Or expresssion.*/
     MCOIMAPSearchKindOr,
     /** And expression.*/
@@ -249,7 +267,9 @@ typedef enum {
     /** AUTH=SRP Capability.*/
     MCOIMAPCapabilityAuthSRP,
     /** AUTH=XOAUTH2 Capability.*/
-    MCOIMAPCapabilityXOAuth2
+    MCOIMAPCapabilityXOAuth2,
+    /** X-GM-EXT-1 Capability.*/
+    MCOIMAPCapabilityGmail
 } MCOIMAPCapability;
 
 /** Error domain for mailcore.*/

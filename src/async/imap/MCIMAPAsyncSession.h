@@ -89,12 +89,18 @@ namespace mailcore {
         virtual void setConnectionLogger(ConnectionLogger * logger);
         virtual ConnectionLogger * connectionLogger();
         
+#ifdef __APPLE__
+        virtual void setDispatchQueue(dispatch_queue_t dispatchQueue);
+        virtual dispatch_queue_t dispatchQueue();
+#endif
+        
         virtual void setOperationQueueCallback(OperationQueueCallback * callback);
         virtual OperationQueueCallback * operationQueueCallback();
         virtual bool isOperationQueueRunning();
         
         virtual IMAPIdentity * serverIdentity();
         virtual IMAPIdentity * clientIdentity();
+        virtual String * gmailUserDisplayName();
         
         virtual IMAPFolderInfoOperation * folderInfoOperation(String * folder);
         virtual IMAPFolderStatusOperation * folderStatusOperation(String * folder);
@@ -109,7 +115,7 @@ namespace mailcore {
         virtual IMAPOperation * subscribeFolderOperation(String * folder);
         virtual IMAPOperation * unsubscribeFolderOperation(String * folder);
         
-        virtual IMAPAppendMessageOperation * appendMessageOperation(String * folder, Data * messageData, MessageFlag flags);
+        virtual IMAPAppendMessageOperation * appendMessageOperation(String * folder, Data * messageData, MessageFlag flags, Array * customFlags = NULL);
         
         virtual IMAPCopyMessagesOperation * copyMessagesOperation(String * folder, IndexSet * uids, String * destFolder);
         
@@ -126,7 +132,7 @@ namespace mailcore {
         virtual IMAPFetchContentOperation * fetchMessageAttachmentByUIDOperation(String * folder, uint32_t uid, String * partID,
                                                                                  Encoding encoding, bool urgent = false);
         
-        virtual IMAPOperation * storeFlagsOperation(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, MessageFlag flags);
+        virtual IMAPOperation * storeFlagsOperation(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, MessageFlag flags, Array * customFlags = NULL);
         virtual IMAPOperation * storeLabelsOperation(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, Array * labels);
         
         virtual IMAPSearchOperation * searchOperation(String * folder, IMAPSearchKind kind, String * searchString);
@@ -140,6 +146,7 @@ namespace mailcore {
         
         virtual IMAPOperation * connectOperation();
         virtual IMAPOperation * checkAccountOperation();
+        virtual IMAPOperation * disconnectOperation();
         
         virtual IMAPCapabilityOperation * capabilityOperation();
         virtual IMAPQuotaOperation * quotaOperation();
@@ -149,7 +156,7 @@ namespace mailcore {
         virtual IMAPMessageRenderingOperation * htmlRenderingOperation(IMAPMessage * message, String * folder);
         virtual IMAPMessageRenderingOperation * htmlBodyRenderingOperation(IMAPMessage * message, String * folder);
         virtual IMAPMessageRenderingOperation * plainTextRenderingOperation(IMAPMessage * message, String * folder);
-        virtual IMAPMessageRenderingOperation * plainTextBodyRenderingOperation(IMAPMessage * message, String * folder);
+        virtual IMAPMessageRenderingOperation * plainTextBodyRenderingOperation(IMAPMessage * message, String * folder, bool stripWhitespace);
         
     public: // private
         virtual void automaticConfigurationDone(IMAPSession * session);
@@ -177,12 +184,17 @@ namespace mailcore {
         IMAPIdentity * mClientIdentity;
         bool mQueueRunning;
         OperationQueueCallback * mOperationQueueCallback;
+#if __APPLE__
+        dispatch_queue_t mDispatchQueue;
+#endif
+        String * mGmailUserDisplayName;
         
         virtual IMAPAsyncConnection * sessionForFolder(String * folder, bool urgent = false);
         virtual IMAPAsyncConnection * session();
         virtual IMAPAsyncConnection * matchingSessionForFolder(String * folder);
         virtual IMAPAsyncConnection * availableSession();
     };
+    
 }
 
 #endif

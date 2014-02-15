@@ -23,11 +23,17 @@ namespace mailcore {
         virtual uint32_t uid();
         virtual void setUid(uint32_t uid);
         
+        virtual uint32_t size();
+        virtual void setSize(uint32_t size);
+        
         virtual void setFlags(MessageFlag flags);
         virtual MessageFlag flags();
         
         virtual void setOriginalFlags(MessageFlag flags);
         virtual MessageFlag originalFlags();
+        
+        virtual void setCustomFlags(Array * customFlags);
+        virtual Array * customFlags();
         
         virtual uint64_t modSeqValue();
         virtual void setModSeqValue(uint64_t uid);
@@ -40,7 +46,7 @@ namespace mailcore {
         
         virtual void setGmailMessageID(uint64_t msgID);
         virtual uint64_t gmailMessageID();
-        		
+                
         virtual void setGmailThreadID(uint64_t threadID);
         virtual uint64_t gmailThreadID();
         
@@ -63,8 +69,11 @@ namespace mailcore {
     private:
         uint64_t mModSeqValue;
         uint32_t mUid;
+        uint32_t mSize;
+        
         MessageFlag mFlags;
         MessageFlag mOriginalFlags;
+        Array * /* String */ mCustomFlags;
         AbstractPart * mMainPart;
         Array * /* String */ mGmailLabels;
         uint64_t mGmailMessageID;

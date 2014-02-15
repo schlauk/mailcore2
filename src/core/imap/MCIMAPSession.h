@@ -81,9 +81,11 @@ namespace mailcore {
         
         virtual void appendMessage(String * folder, Data * messageData, MessageFlag flags,
                                    IMAPProgressCallback * progressCallback, uint32_t * createdUID, ErrorCode * pError);
+        virtual void appendMessageWithCustomFlags(String * folder, Data * messageData, MessageFlag flags, Array * customFlags,
+                                   IMAPProgressCallback * progressCallback, uint32_t * createdUID, ErrorCode * pError);
         
-        virtual void copyMessages(String * folder, IndexSet * uidSet, String * destFolder,
-                                  IndexSet ** pDestUIDs, ErrorCode * pError);
+        void copyMessages(String * folder, IndexSet * uidSet, String * destFolder,
+                          HashMap ** pUidMapping, ErrorCode * pError);
         
         virtual void expunge(String * folder, ErrorCode * pError);
         
@@ -120,8 +122,9 @@ namespace mailcore {
                                                                    IndexSet * uids, uint64_t modseq,
                                                                    IMAPProgressCallback * progressCallback,
                                                                    Array * extraHeaders, ErrorCode * pError);
-
+        
         virtual void storeFlags(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, MessageFlag flags, ErrorCode * pError);
+        virtual void storeFlagsAndCustomFlags(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, MessageFlag flags, Array * customFlags, ErrorCode * pError);
         virtual void storeLabels(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, Array * labels, ErrorCode * pError);
         
         virtual IndexSet * search(String * folder, IMAPSearchKind kind, String * searchString, ErrorCode * pError);
@@ -163,6 +166,8 @@ namespace mailcore {
         virtual bool isNamespaceEnabled();
         virtual bool isCompressionEnabled();
         
+        virtual String * gmailUserDisplayName();
+        
         virtual void setConnectionLogger(ConnectionLogger * logger);
         virtual ConnectionLogger * connectionLogger();
         
@@ -175,9 +180,9 @@ namespace mailcore {
         /** Text rendering of the message.*/
         virtual String * plainTextRendering(IMAPMessage * message, String * folder, ErrorCode * pError);
         
-        /** Text rendering of the body of the message. All end of line will be removed and white spaces cleaned up.
+        /** Text rendering of the body of the message. All end of line will be removed and white spaces cleaned up if requested.
          This method can be used to generate the summary of the message.*/
-        virtual String * plainTextBodyRendering(IMAPMessage * message, String * folder, ErrorCode * pError);
+        virtual String * plainTextBodyRendering(IMAPMessage * message, String * folder, bool stripWhitespace, ErrorCode * pError);
         
         /** Enable automatic query of the capabilities of the IMAP server when set to true. */
         virtual void setAutomaticConfigurationEnabled(bool enabled);
@@ -219,6 +224,7 @@ namespace mailcore {
         bool mXOauth2Enabled;
         bool mNamespaceEnabled;
         bool mCompressionEnabled;
+        bool mIsGmail;
         String * mWelcomeString;
         bool mNeedsMboxMailWorkaround;
         uint32_t mUIDValidity;
@@ -241,6 +247,9 @@ namespace mailcore {
         bool mAutomaticConfigurationDone;
         bool mShouldDisconnect;
         
+        String * mLoginResponse;
+        String * mGmailUserDisplayName;
+        
         void init();
         void bodyProgress(unsigned int current, unsigned int maximum);
         void itemsProgress(unsigned int current, unsigned int maximum);
@@ -258,6 +267,7 @@ namespace mailcore {
         bool enableFeature(String * feature);
         void enableFeatures();
     };
+    
 }
 
 #endif

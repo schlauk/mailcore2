@@ -8,14 +8,14 @@
 #ifdef __cplusplus
 
 namespace mailcore {
-	
+    
     class MessageBuilder;
     class SMTPOperation;
     class SMTPSession;
     class Address;
     class SMTPOperationQueueCallback;
     class SMTPConnectionLogger;
-
+    
     class SMTPAsyncSession : public Object {
     public:
         SMTPAsyncSession();
@@ -54,6 +54,11 @@ namespace mailcore {
         virtual void setConnectionLogger(ConnectionLogger * logger);
         virtual ConnectionLogger * connectionLogger();
         
+#ifdef __APPLE__
+        virtual void setDispatchQueue(dispatch_queue_t dispatchQueue);
+        virtual dispatch_queue_t dispatchQueue();
+#endif
+        
         virtual SMTPOperation * sendMessageOperation(Data * messageData);
         virtual SMTPOperation * sendMessageOperation(Address * from, Array * recipients,
                                                      Data * messageData);
@@ -67,7 +72,7 @@ namespace mailcore {
         virtual void tryAutomaticDisconnect();
         virtual void logConnection(ConnectionLogType logType, Data * buffer);
         
-        private:
+    private:
         SMTPSession * mSession;
         OperationQueue * mQueue;
         SMTPOperationQueueCallback * mQueueCallback;

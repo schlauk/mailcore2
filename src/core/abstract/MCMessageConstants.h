@@ -10,7 +10,7 @@ namespace mailcore {
         ConnectionTypeStartTLS          = 1 << 1,
         ConnectionTypeTLS               = 1 << 2,
     };
-
+    
     enum AuthType {
         AuthTypeSASLNone          = 0,
         AuthTypeSASLCRAMMD5       = 1 << 0,
@@ -23,7 +23,7 @@ namespace mailcore {
         AuthTypeSASLKerberosV4    = 1 << 7,
         AuthTypeXOAuth2           = 1 << 8,
     };
-
+    
     enum IMAPFolderFlag {
         IMAPFolderFlagNone        = 0,
         IMAPFolderFlagMarked      = 1 << 0,
@@ -42,8 +42,10 @@ namespace mailcore {
         IMAPFolderFlagAll = IMAPFolderFlagAllMail,
         IMAPFolderFlagJunk = IMAPFolderFlagSpam,
         IMAPFolderFlagFlagged = IMAPFolderFlagStarred,
+        IMAPFolderFlagFolderTypeMask = IMAPFolderFlagInbox | IMAPFolderFlagSentMail | IMAPFolderFlagStarred | IMAPFolderFlagAllMail |
+          IMAPFolderFlagTrash| IMAPFolderFlagDrafts | IMAPFolderFlagSpam | IMAPFolderFlagImportant | IMAPFolderFlagArchive,
     };
-
+    
     enum MessageFlag {
         MessageFlagNone          = 0,
         MessageFlagSeen          = 1 << 0,
@@ -56,7 +58,7 @@ namespace mailcore {
         MessageFlagSubmitPending = 1 << 7,
         MessageFlagSubmitted     = 1 << 8,
     } ;
-
+    
     enum IMAPMessagesRequestKind {
         IMAPMessagesRequestKindUid           = 0, // This is the default and it's always fetched
         IMAPMessagesRequestKindFlags         = 1 << 0,
@@ -69,25 +71,26 @@ namespace mailcore {
         IMAPMessagesRequestKindGmailMessageID = 1 << 7,
         IMAPMessagesRequestKindGmailThreadID  = 1 << 8,
         IMAPMessagesRequestKindExtraHeaders  = 1 << 9,
+        IMAPMessagesRequestKindSize          = 1 << 10,
     };
-
+    
     enum IMAPFetchRequestType {
         IMAPFetchRequestTypeUID = 0,
         IMAPFetchRequestTypeSequence = 1
     };
-
+    
     enum IMAPStoreFlagsRequestKind {
         IMAPStoreFlagsRequestKindAdd,
         IMAPStoreFlagsRequestKindRemove,
         IMAPStoreFlagsRequestKindSet,
     };
-
+    
     enum IMAPWorkaround {
         IMAPWorkaroundGmail = 1 << 0,
         IMAPWorkaroundYahoo = 1 << 1,
         IMAPWorkaroundExchange2003 = 1 << 2,
     };
-
+    
     enum IMAPCapability {
         IMAPCapabilityACL,
         IMAPCapabilityBinary,
@@ -125,7 +128,7 @@ namespace mailcore {
         IMAPCapabilityXOAuth2,
         IMAPCapabilityGmail,
     };
-
+    
     enum POPCapability {
         POPCapabilityNone,
         POPCapabilityStartTLS,
@@ -148,7 +151,7 @@ namespace mailcore {
         POPCapabilityAuthSKey,
         POPCapabilityAuthSRP,
     };
-
+    
     enum Encoding {
         Encoding7Bit = 0,            // should match MAILIMAP_BODY_FLD_ENC_7BIT
         Encoding8Bit = 1,            // should match MAILIMAP_BODY_FLD_ENC_8BIT
@@ -161,12 +164,37 @@ namespace mailcore {
     };
     
     enum IMAPSearchKind {
+        IMAPSearchKindAll,
         IMAPSearchKindNone,
         IMAPSearchKindFrom,
-        IMAPSearchKindRecipient,
+        IMAPSearchKindTo,
+        IMAPSearchKindCc,
+        IMAPSearchKindBcc,
+        IMAPSearchKindRecipient,   // Recipient is the combination of To, Cc and Bcc
         IMAPSearchKindSubject,
         IMAPSearchKindContent,
+        IMAPSearchKindUIDs,
         IMAPSearchKindHeader,
+        IMAPSearchKindRead,
+        IMAPSearchKindUnread,
+        IMAPSearchKindFlagged,
+        IMAPSearchKindUnflagged,
+        IMAPSearchKindAnswered,
+        IMAPSearchKindUnanswered,
+        IMAPSearchKindDraft,
+        IMAPSearchKindUndraft,
+        IMAPSearchKindDeleted,
+        IMAPSearchKindSpam,
+        IMAPSearchKindBeforeDate,
+        IMAPSearchKindOnDate,
+        IMAPSearchKindSinceDate,
+        IMAPSearchKindBeforeReceivedDate,
+        IMAPSearchKindOnReceivedDate,
+        IMAPSearchKindSinceReceivedDate,
+        IMAPSearchKindSizeLarger,
+        IMAPSearchKindSizeSmaller,
+        IMAPSearchKindGmailThreadID,
+        IMAPSearchKindGmailRaw,
         IMAPSearchKindOr,
         IMAPSearchKindAnd,
     };
@@ -227,8 +255,10 @@ namespace mailcore {
         IMAPMessageRenderingTypeHTML,
         IMAPMessageRenderingTypeHTMLBody,
         IMAPMessageRenderingTypePlainText,
-        IMAPMessageRenderingTypePlainTextBody
+        IMAPMessageRenderingTypePlainTextBody,
+        IMAPMessageRenderingTypePlainTextBodyAndStripWhitespace,
     };
+    
 }
 
 #endif

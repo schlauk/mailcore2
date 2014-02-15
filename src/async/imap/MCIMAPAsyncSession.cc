@@ -14,6 +14,7 @@
 #include "MCConnectionLogger.h"
 #include "MCIMAPSession.h"
 #include "MCIMAPIdentity.h"
+#include "MCIMAPMultiDisconnectOperation.h"
 
 #define DEFAULT_MAX_CONNECTIONS 3
 
@@ -41,10 +42,15 @@ IMAPAsyncSession::IMAPAsyncSession()
     mServerIdentity = new IMAPIdentity();
     mClientIdentity = new IMAPIdentity();
     mOperationQueueCallback = NULL;
+#if __APPLE__
+    mDispatchQueue = dispatch_get_main_queue();
+#endif
+    mGmailUserDisplayName = NULL;
 }
 
 IMAPAsyncSession::~IMAPAsyncSession()
 {
+    MC_SAFE_RELEASE(mGmailUserDisplayName);
     MC_SAFE_RELEASE(mServerIdentity);
     MC_SAFE_RELEASE(mClientIdentity);
     MC_SAFE_RELEASE(mSessions);
@@ -195,6 +201,11 @@ IMAPIdentity * IMAPAsyncSession::clientIdentity()
     return mClientIdentity;
 }
 
+String * IMAPAsyncSession::gmailUserDisplayName()
+{
+    return mGmailUserDisplayName;
+}
+
 IMAPAsyncConnection * IMAPAsyncSession::session()
 {
     IMAPAsyncConnection * session = new IMAPAsyncConnection();
@@ -214,6 +225,7 @@ IMAPAsyncConnection * IMAPAsyncSession::session()
     session->setVoIPEnabled(mVoIPEnabled);
     session->setDefaultNamespace(mDefaultNamespace);
     session->setClientIdentity(mClientIdentity);
+    session->setDispatchQueue(mDispatchQueue);
 #if 0 // should be implemented properly
     if (mAutomaticConfigurationDone) {
         session->setAutomaticConfigurationEnabled(false);
@@ -354,10 +366,10 @@ IMAPOperation * IMAPAsyncSession::unsubscribeFolderOperation(String * folder)
     return session->unsubscribeFolderOperation(folder);
 }
 
-IMAPAppendMessageOperation * IMAPAsyncSession::appendMessageOperation(String * folder, Data * messageData, MessageFlag flags)
+IMAPAppendMessageOperation * IMAPAsyncSession::appendMessageOperation(String * folder, Data * messageData, MessageFlag flags, Array * customFlags)
 {
     IMAPAsyncConnection * session = sessionForFolder(folder);
-    return session->appendMessageOperation(folder, messageData, flags);
+    return session->appendMessageOperation(folder, messageData, flags, customFlags);
 }
 
 IMAPCopyMessagesOperation * IMAPAsyncSession::copyMessagesOperation(String * folder, IndexSet * uids, String * destFolder)
@@ -406,10 +418,10 @@ IMAPFetchContentOperation * IMAPAsyncSession::fetchMessageAttachmentByUIDOperati
     return session->fetchMessageAttachmentByUIDOperation(folder, uid, partID, encoding);
 }
 
-IMAPOperation * IMAPAsyncSession::storeFlagsOperation(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, MessageFlag flags)
+IMAPOperation * IMAPAsyncSession::storeFlagsOperation(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, MessageFlag flags, Array * customFlags)
 {
     IMAPAsyncConnection * session = sessionForFolder(folder);
-    return session->storeFlagsOperation(folder, uids, kind, flags);
+    return session->storeFlagsOperation(folder, uids, kind, flags, customFlags);
 }
 
 IMAPOperation * IMAPAsyncSession::storeLabelsOperation(String * folder, IndexSet * uids, IMAPStoreFlagsRequestKind kind, Array * labels)
@@ -478,6 +490,17 @@ IMAPOperation * IMAPAsyncSession::noopOperation()
     return session->noopOperation();
 }
 
+IMAPOperation * IMAPAsyncSession::disconnectOperation()
+{
+    IMAPMultiDisconnectOperation * op = new IMAPMultiDisconnectOperation();
+    op->autorelease();
+    for(unsigned int i = 0 ; i < mSessions->count() ; i ++) {
+        IMAPAsyncConnection * currentSession = (IMAPAsyncConnection *) mSessions->objectAtIndex(i);
+        op->addOperation(currentSession->disconnectOperation());
+    }
+    return op;
+}
+
 void IMAPAsyncSession::setConnectionLogger(ConnectionLogger * logger)
 {
     mConnectionLogger = logger;
@@ -514,15 +537,17 @@ IMAPMessageRenderingOperation * IMAPAsyncSession::plainTextRenderingOperation(IM
 }
 
 IMAPMessageRenderingOperation * IMAPAsyncSession::plainTextBodyRenderingOperation(IMAPMessage * message,
-                                                                                  String * folder)
+                                                                                  String * folder,
+                                                                                  bool stripWhitespace)
 {
     IMAPAsyncConnection * session = sessionForFolder(folder);
-    return session->plainTextBodyRenderingOperation(message, folder);
+    return session->plainTextBodyRenderingOperation(message, folder, stripWhitespace);
 }
 
 void IMAPAsyncSession::automaticConfigurationDone(IMAPSession * session)
 {
     MC_SAFE_REPLACE_COPY(IMAPIdentity, mServerIdentity, session->serverIdentity());
+    MC_SAFE_REPLACE_COPY(String, mGmailUserDisplayName, session->gmailUserDisplayName());
     setDefaultNamespace(session->defaultNamespace());
     mAutomaticConfigurationDone = true;
 }
@@ -565,3 +590,15 @@ void IMAPAsyncSession::operationRunningStateChanged()
         }
     }
 }
+
+#if __APPLE__
+void IMAPAsyncSession::setDispatchQueue(dispatch_queue_t dispatchQueue)
+{
+    mDispatchQueue = dispatchQueue;
+}
+
+dispatch_queue_t IMAPAsyncSession::dispatchQueue()
+{
+    return mDispatchQueue;
+}
+#endif

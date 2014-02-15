@@ -8,9 +8,9 @@
 #ifdef __cplusplus
 
 namespace mailcore {
-
+    
     class String;
-
+    
     class Data : public Object {
     public:
         Data();
@@ -57,7 +57,6 @@ namespace mailcore {
         unsigned int mAllocated;
         void allocate(unsigned int length);
         void reset();
-        static String * normalizeCharset(String * charset);
         String * charsetWithFilteredHTMLWithoutHint(bool filterHTML);
         
     };

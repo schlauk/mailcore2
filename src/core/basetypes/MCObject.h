@@ -14,17 +14,17 @@
     virtual mcType * getter();
 
 namespace mailcore {
-
+    
     extern bool zombieEnabled;
     
     class String;
     class HashMap;
-
+    
     class Object {
     public:
         Object();
         virtual ~Object();
-
+        
         virtual int retainCount();
         virtual Object * retain();
         virtual void release();
@@ -43,10 +43,12 @@ namespace mailcore {
         typedef void (Object::*Method) (void *);
         virtual void performMethod(Method method, void * context);
         virtual void performMethodOnMainThread(Method method, void * context, bool waitUntilDone = false);
+        virtual void performMethodAfterDelay(Method method, void * context, double delay);
 #if __APPLE__
         virtual void performMethodOnDispatchQueue(Method method, void * context, void * targetDispatchQueue, bool waitUntilDone = false);
+        virtual void performMethodOnDispatchQueueAfterDelay(Method method, void * context, void * targetDispatchQueue, bool delay);
+        virtual void cancelDelayedPerformMethodOnDispatchQueue(Method method, void * context, void * targetDispatchQueue);
 #endif
-        virtual void performMethodAfterDelay(Method method, void * context, double delay);
         virtual void cancelDelayedPerformMethod(Method method, void * context);
         
         // serialization utils
