@@ -6,9 +6,9 @@
 //  Copyright (c) 2013 MailCore. All rights reserved.
 //
 
-#ifndef __MAILCORE_MCOINDEXSET_H_
+#ifndef MAILCORE_MCOINDEXSET_H
 
-#define __MAILCORE_MCOINDEXSET_H_
+#define MAILCORE_MCOINDEXSET_H
 
 #import <Foundation/Foundation.h>
 
@@ -16,7 +16,7 @@
 
 /** similar to NSMutableIndexSet but supports int64_t*/
 
-@interface MCOIndexSet : NSObject <NSCopying>
+@interface MCOIndexSet : NSObject <NSCopying, NSCoding>
 
 /** Creates an empty index set.*/
 + (MCOIndexSet *) indexSet;

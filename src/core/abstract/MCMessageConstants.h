@@ -1,5 +1,6 @@
-#ifndef __MAILCORE_MCMESSAGECONSTANTS_H_
-#define __MAILCORE_MCMESSAGECONSTANTS_H_
+#ifndef MAILCORE_MCMESSAGECONSTANTS_H
+
+#define MAILCORE_MCMESSAGECONSTANTS_H
 
 #ifdef __cplusplus
 
@@ -194,9 +195,11 @@ namespace mailcore {
         IMAPSearchKindSizeLarger,
         IMAPSearchKindSizeSmaller,
         IMAPSearchKindGmailThreadID,
+        IMAPSearchKindGmailMessageID,
         IMAPSearchKindGmailRaw,
         IMAPSearchKindOr,
         IMAPSearchKindAnd,
+        IMAPSearchKindNot,
     };
     
     enum ErrorCode {
