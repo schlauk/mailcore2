@@ -23,6 +23,7 @@ namespace mailcore {
         AuthTypeSASLNTLM          = 1 << 6,
         AuthTypeSASLKerberosV4    = 1 << 7,
         AuthTypeXOAuth2           = 1 << 8,
+        AuthTypeXOAuth2Outlook    = 1 << 9,
     };
     
     enum IMAPFolderFlag {
@@ -58,6 +59,9 @@ namespace mailcore {
         MessageFlagForwarded     = 1 << 6,
         MessageFlagSubmitPending = 1 << 7,
         MessageFlagSubmitted     = 1 << 8,
+        MessageFlagMaskAll = MessageFlagSeen | MessageFlagAnswered | MessageFlagFlagged |
+        MessageFlagDeleted | MessageFlagDraft | MessageFlagMDNSent | MessageFlagForwarded |
+        MessageFlagSubmitPending | MessageFlagSubmitted,
     } ;
     
     enum IMAPMessagesRequestKind {
@@ -174,6 +178,7 @@ namespace mailcore {
         IMAPSearchKindRecipient,   // Recipient is the combination of To, Cc and Bcc
         IMAPSearchKindSubject,
         IMAPSearchKindContent,
+        IMAPSearchKindBody,
         IMAPSearchKindUIDs,
         IMAPSearchKindHeader,
         IMAPSearchKindRead,
@@ -203,7 +208,7 @@ namespace mailcore {
     };
     
     enum ErrorCode {
-        ErrorNone,
+        ErrorNone, // 0
         ErrorConnection,
         ErrorTLSNotAvailable,
         ErrorParse,
@@ -213,7 +218,7 @@ namespace mailcore {
         ErrorGmailExceededBandwidthLimit,
         ErrorGmailTooManySimultaneousConnections,
         ErrorMobileMeMoved,
-        ErrorYahooUnavailable,
+        ErrorYahooUnavailable, // 10
         ErrorNonExistantFolder,
         ErrorRename,
         ErrorDelete,
@@ -223,7 +228,7 @@ namespace mailcore {
         ErrorCopy,
         ErrorExpunge,
         ErrorFetch,
-        ErrorIdle,
+        ErrorIdle, // 20
         ErrorIdentity,
         ErrorNamespace,
         ErrorStore,
@@ -233,7 +238,7 @@ namespace mailcore {
         ErrorStorageLimit,
         ErrorSendMessageNotAllowed,
         ErrorNeedsConnectToWebmail,
-        ErrorSendMessage,
+        ErrorSendMessage, // 30
         ErrorAuthenticationRequired,
         ErrorFetchMessageList,
         ErrorDeleteMessage,
@@ -243,6 +248,8 @@ namespace mailcore {
         ErrorNoSender,
         ErrorNoRecipient,
         ErrorNoop,
+        ErrorGmailApplicationSpecificPasswordRequired, // 40
+        ErrorServerDate,
     };
     
     enum PartType {
@@ -251,6 +258,7 @@ namespace mailcore {
         PartTypeMultipartMixed,
         PartTypeMultipartRelated,
         PartTypeMultipartAlternative,
+        PartTypeMultipartSigned,
     };
     
     // Private type - It should not be used directly.

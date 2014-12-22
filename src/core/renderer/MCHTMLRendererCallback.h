@@ -12,6 +12,7 @@
 
 #include <MailCore/MCAbstract.h>
 #include <MailCore/MCIMAP.h>
+#include <MailCore/MCUtils.h>
 
 #ifdef __cplusplus
 
@@ -19,7 +20,7 @@ namespace mailcore {
     
     class MessageParser;
     
-    class HTMLRendererIMAPCallback {
+    class MAILCORE_EXPORT HTMLRendererIMAPCallback {
     public:
         HTMLRendererIMAPCallback() {}
         virtual ~HTMLRendererIMAPCallback() {}
@@ -29,7 +30,7 @@ namespace mailcore {
         virtual void prefetchImageIMAPPart(String * folder, IMAPPart * part) {}
     };
     
-    class HTMLRendererTemplateCallback {
+    class MAILCORE_EXPORT HTMLRendererTemplateCallback {
     public:
         virtual bool canPreviewPart(AbstractPart * part);
         virtual bool shouldShowPart(AbstractPart * part);
@@ -45,6 +46,8 @@ namespace mailcore {
         virtual String * templateForEmbeddedMessageHeader(MessageHeader * header);
         virtual String * templateForAttachmentSeparator();
         
+        virtual String * cleanHTMLForPart(String * html);
+
         // Can be used to filter some HTML tags.
         virtual String * filterHTMLForPart(String * html);
         

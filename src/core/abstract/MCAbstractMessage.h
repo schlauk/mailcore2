@@ -11,7 +11,7 @@ namespace mailcore {
     class AbstractPart;
     class MessageHeader;
     
-    class AbstractMessage : public Object {
+    class MAILCORE_EXPORT AbstractMessage : public Object {
     public:
         AbstractMessage();
         virtual ~AbstractMessage();
@@ -24,6 +24,7 @@ namespace mailcore {
         
         virtual Array * /* AbstractPart */ attachments();
         virtual Array * /* AbstractPart */ htmlInlineAttachments();
+        virtual Array * /* AbstractPart */ requiredPartsForRendering();
         
     public: //subclass behavior
         AbstractMessage(AbstractMessage * other);

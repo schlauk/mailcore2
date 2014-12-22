@@ -18,7 +18,7 @@
 
 namespace mailcore {
     
-    class IndexSet : public Object {
+    class MAILCORE_EXPORT IndexSet : public Object {
     public:
         IndexSet();
         IndexSet(IndexSet * o);
