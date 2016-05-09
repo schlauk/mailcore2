@@ -19,19 +19,25 @@
 namespace mailcore {
     
     class MessageParser;
+    class Attachment;
     
     class MAILCORE_EXPORT HTMLRendererIMAPCallback {
     public:
         HTMLRendererIMAPCallback() {}
         virtual ~HTMLRendererIMAPCallback() {}
-        
+
         virtual Data * dataForIMAPPart(String * folder, IMAPPart * part) { return NULL; }
         virtual void prefetchAttachmentIMAPPart(String * folder, IMAPPart * part) {}
         virtual void prefetchImageIMAPPart(String * folder, IMAPPart * part) {}
     };
-    
+
     class MAILCORE_EXPORT HTMLRendererTemplateCallback {
     public:
+        HTMLRendererTemplateCallback();
+        virtual ~HTMLRendererTemplateCallback();
+
+        virtual void setMixedTextAndAttachmentsModeEnabled(bool enabled);
+
         virtual bool canPreviewPart(AbstractPart * part);
         virtual bool shouldShowPart(AbstractPart * part);
         
@@ -53,6 +59,12 @@ namespace mailcore {
         
         // Can be used to hide quoted text.
         virtual String * filterHTMLForMessage(String * html);
+    };
+
+    class MAILCORE_EXPORT HTMLRendererRFC822Callback {
+    public:
+        virtual Data * dataForRFC822Part(String * folder, Attachment * part) { return NULL; }
+
     };
     
 }

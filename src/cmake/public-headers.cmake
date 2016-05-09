@@ -6,6 +6,7 @@ core/abstract/MCAbstractMessage.h
 core/basetypes/MCBaseTypes.h
 core/basetypes/MCAutoreleasePool.h
 core/basetypes/MCObject.h
+core/basetypes/MCUtils.h
 core/basetypes/MCValue.h
 core/basetypes/MCString.h
 core/basetypes/MCRange.h
@@ -21,7 +22,6 @@ core/basetypes/MCSet.h
 core/basetypes/MCHash.h
 core/basetypes/MCLog.h
 core/basetypes/MCAssert.h
-core/basetypes/MCUtils.h
 core/basetypes/MCIndexSet.h
 core/basetypes/MCOperation.h
 core/basetypes/MCOperationQueue.h
@@ -29,6 +29,7 @@ core/basetypes/MCLibetpanTypes.h
 core/basetypes/MCOperationCallback.h
 core/basetypes/MCIterator.h
 core/basetypes/MCConnectionLogger.h
+core/basetypes/MCHTMLCleaner.h
 core/abstract/MCAbstractMessagePart.h
 core/abstract/MCAbstractPart.h
 core/abstract/MCAbstractMultipart.h
@@ -73,6 +74,7 @@ core/provider/MCProvider.h
 core/provider/MCMailProvidersManager.h
 core/provider/MCMailProvider.h
 core/provider/MCNetService.h
+core/provider/MCAccountValidator.h
 async/MCAsync.h
 async/smtp/MCAsyncSMTP.h
 async/smtp/MCSMTPAsyncSession.h
@@ -84,10 +86,12 @@ async/imap/MCIMAPOperation.h
 async/imap/MCIMAPFetchFoldersOperation.h
 async/imap/MCIMAPAppendMessageOperation.h
 async/imap/MCIMAPCopyMessagesOperation.h
+async/imap/MCIMAPMoveMessagesOperation.h
 async/imap/MCIMAPFetchMessagesOperation.h
 async/imap/MCIMAPFetchContentOperation.h
 async/imap/MCIMAPFetchParsedContentOperation.h
 async/imap/MCIMAPIdleOperation.h
+async/imap/MCIMAPFolderInfo.h
 async/imap/MCIMAPFolderInfoOperation.h
 async/imap/MCIMAPFolderStatusOperation.h
 async/imap/MCIMAPSearchOperation.h
@@ -97,6 +101,8 @@ async/imap/MCIMAPCapabilityOperation.h
 async/imap/MCIMAPQuotaOperation.h
 async/imap/MCIMAPOperationCallback.h
 async/imap/MCIMAPMessageRenderingOperation.h
+async/imap/MCIMAPCustomCommandOperation.h
+async/imap/MCIMAPCheckAccountOperation.h
 async/pop/MCAsyncPOP.h
 async/pop/MCPOPAsyncSession.h
 async/pop/MCPOPOperation.h
@@ -113,6 +119,7 @@ async/nntp/MCNNTPFetchAllArticlesOperation.h
 async/nntp/MCNNTPListNewsgroupsOperation.h
 async/nntp/MCNNTPFetchOverviewOperation.h
 async/nntp/MCNNTPFetchServerTimeOperation.h
+async/nntp/MCNNTPPostOperation.h
 async/nntp/MCNNTPOperationCallback.h
 objc/MCObjC.h
 objc/utils/MCOUtils.h
@@ -157,6 +164,7 @@ objc/imap/MCOIMAPFolderStatusOperation.h
 objc/imap/MCOIMAPFolderStatus.h
 objc/imap/MCOIMAPAppendMessageOperation.h
 objc/imap/MCOIMAPCopyMessagesOperation.h
+objc/imap/MCOIMAPMoveMessagesOperation.h
 objc/imap/MCOIMAPFetchMessagesOperation.h
 objc/imap/MCOIMAPFetchContentOperation.h
 objc/imap/MCOIMAPFetchParsedContentOperation.h
@@ -168,6 +176,7 @@ objc/imap/MCOIMAPCapabilityOperation.h
 objc/imap/MCOIMAPQuotaOperation.h
 objc/imap/MCOIMAPSearchExpression.h
 objc/imap/MCOIMAPMessageRenderingOperation.h
+objc/imap/MCOIMAPCustomCommandOperation.h
 objc/rfc822/MCORFC822.h
 objc/rfc822/MCOAttachment.h
 objc/rfc822/MCOMessageBuilder.h
@@ -194,9 +203,11 @@ objc/nntp/MCONNTPFetchAllArticlesOperation.h
 objc/nntp/MCONNTPListNewsgroupsOperation.h
 objc/nntp/MCONNTPFetchOverviewOperation.h
 objc/nntp/MCONNTPFetchServerTimeOperation.h
+objc/nntp/MCONNTPPostOperation.h
 objc/nntp/MCONNTPGroupInfo.h
 objc/provider/MCOProvider.h
 objc/provider/MCONetService.h
 objc/provider/MCOMailProvider.h
 objc/provider/MCOMailProvidersManager.h
+objc/provider/MCOAccountValidator.h
 )

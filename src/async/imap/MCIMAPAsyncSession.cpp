@@ -26,6 +26,7 @@
 #include "MCIMAPExpungeOperation.h"
 #include "MCIMAPAppendMessageOperation.h"
 #include "MCIMAPCopyMessagesOperation.h"
+#include "MCIMAPMoveMessagesOperation.h"
 #include "MCIMAPFetchMessagesOperation.h"
 #include "MCIMAPFetchContentOperation.h"
 #include "MCIMAPFetchParsedContentOperation.h"
@@ -42,6 +43,7 @@
 #include "MCIMAPDisconnectOperation.h"
 #include "MCIMAPNoopOperation.h"
 #include "MCIMAPMessageRenderingOperation.h"
+#include "MCIMAPCustomCommandOperation.h"
 
 #define DEFAULT_MAX_CONNECTIONS 3
 
@@ -73,6 +75,8 @@ IMAPAsyncSession::IMAPAsyncSession()
     mDispatchQueue = dispatch_get_main_queue();
 #endif
     mGmailUserDisplayName = NULL;
+    mQueueRunning = false;
+    mIdleEnabled = false;
 }
 
 IMAPAsyncSession::~IMAPAsyncSession()
@@ -233,9 +237,19 @@ IMAPIdentity * IMAPAsyncSession::clientIdentity()
     return mClientIdentity;
 }
 
+void IMAPAsyncSession::setClientIdentity(IMAPIdentity * clientIdentity)
+{
+    MC_SAFE_REPLACE_COPY(IMAPIdentity, mClientIdentity, clientIdentity);
+}
+
 String * IMAPAsyncSession::gmailUserDisplayName()
 {
     return mGmailUserDisplayName;
+}
+
+bool IMAPAsyncSession::isIdleEnabled()
+{
+    return mIdleEnabled;
 }
 
 IMAPAsyncConnection * IMAPAsyncSession::session()
@@ -440,9 +454,32 @@ IMAPAppendMessageOperation * IMAPAsyncSession::appendMessageOperation(String * f
     return op;
 }
 
+IMAPAppendMessageOperation * IMAPAsyncSession::appendMessageOperation(String * folder, String * messagePath, MessageFlag flags, Array * customFlags)
+{
+    IMAPAppendMessageOperation * op = new IMAPAppendMessageOperation();
+    op->setMainSession(this);
+    op->setFolder(folder);
+    op->setMessageFilepath(messagePath);
+    op->setFlags(flags);
+    op->setCustomFlags(customFlags);
+    op->autorelease();
+    return op;
+}
+
 IMAPCopyMessagesOperation * IMAPAsyncSession::copyMessagesOperation(String * folder, IndexSet * uids, String * destFolder)
 {
     IMAPCopyMessagesOperation * op = new IMAPCopyMessagesOperation();
+    op->setMainSession(this);
+    op->setFolder(folder);
+    op->setUids(uids);
+    op->setDestFolder(destFolder);
+    op->autorelease();
+    return op;
+}
+
+IMAPMoveMessagesOperation * IMAPAsyncSession::moveMessagesOperation(String * folder, IndexSet * uids, String * destFolder)
+{
+    IMAPMoveMessagesOperation * op = new IMAPMoveMessagesOperation();
     op->setMainSession(this);
     op->setFolder(folder);
     op->setUids(uids);
@@ -485,8 +522,8 @@ IMAPFetchMessagesOperation * IMAPAsyncSession::fetchMessagesByNumberOperation(St
     return op;
 }
 
-IMAPFetchMessagesOperation * IMAPAsyncSession::syncMessagesByUID(String * folder, IMAPMessagesRequestKind requestKind,
-                                                                 IndexSet * uids, uint64_t modSeq)
+IMAPFetchMessagesOperation * IMAPAsyncSession::syncMessagesByUIDOperation(String * folder, IMAPMessagesRequestKind requestKind,
+                                                                          IndexSet * uids, uint64_t modSeq)
 {
     IMAPFetchMessagesOperation * op = new IMAPFetchMessagesOperation();
     op->setMainSession(this);
@@ -530,6 +567,17 @@ IMAPFetchContentOperation * IMAPAsyncSession::fetchMessageByNumberOperation(Stri
     op->setMainSession(this);
     op->setFolder(folder);
     op->setNumber(number);
+    op->setUrgent(urgent);
+    op->autorelease();
+    return op;
+}
+
+IMAPCustomCommandOperation * IMAPAsyncSession::customCommand(String *command, bool urgent)
+{
+
+    IMAPCustomCommandOperation *op = new IMAPCustomCommandOperation();
+    op->setMainSession(this);
+    op->setCustomCommand(command);
     op->setUrgent(urgent);
     op->autorelease();
     return op;
@@ -677,7 +725,7 @@ IMAPOperation * IMAPAsyncSession::connectOperation()
     return op;
 }
 
-IMAPOperation * IMAPAsyncSession::checkAccountOperation()
+IMAPCheckAccountOperation * IMAPAsyncSession::checkAccountOperation()
 {
     IMAPCheckAccountOperation * op = new IMAPCheckAccountOperation();
     op->setMainSession(this);
@@ -778,6 +826,7 @@ void IMAPAsyncSession::automaticConfigurationDone(IMAPSession * session)
 {
     MC_SAFE_REPLACE_COPY(IMAPIdentity, mServerIdentity, session->serverIdentity());
     MC_SAFE_REPLACE_COPY(String, mGmailUserDisplayName, session->gmailUserDisplayName());
+    mIdleEnabled = session->isIdleEnabled();
     setDefaultNamespace(session->defaultNamespace());
     mAutomaticConfigurationDone = true;
 }

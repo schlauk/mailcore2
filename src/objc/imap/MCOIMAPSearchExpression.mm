@@ -42,7 +42,7 @@
     return _nativeExpr;
 }
 
-- (id) initWithMCExpression:(mailcore::IMAPSearchExpression *)expr
+- (instancetype) initWithMCExpression:(mailcore::IMAPSearchExpression *)expr
 {
     self = [super init];
     
@@ -105,6 +105,12 @@
 {
     return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchUIDs(MCO_FROM_OBJC(mailcore::IndexSet, uids)));
 }
+
++ (MCOIMAPSearchExpression *) searchNumbers:(MCOIndexSet *) numbers
+{
+    return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchNumbers(MCO_FROM_OBJC(mailcore::IndexSet, numbers)));
+}
+
 + (MCOIMAPSearchExpression *) searchHeader:(NSString *)header value:(NSString *)value
 {
     return MCO_TO_OBJC(mailcore::IMAPSearchExpression::searchHeader([header mco_mcString], [value mco_mcString]));

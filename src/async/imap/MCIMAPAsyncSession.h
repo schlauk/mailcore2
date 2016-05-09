@@ -21,6 +21,7 @@ namespace mailcore {
     class IMAPFetchFoldersOperation;
     class IMAPAppendMessageOperation;
     class IMAPCopyMessagesOperation;
+    class IMAPMoveMessagesOperation;
     class IMAPFetchMessagesOperation;
     class IMAPFetchContentOperation;
     class IMAPFetchParsedContentOperation;
@@ -40,6 +41,8 @@ namespace mailcore {
     class IMAPSession;
     class IMAPIdentity;
     class OperationQueueCallback;
+    class IMAPCustomCommandOperation;
+    class IMAPCheckAccountOperation;
     
     class MAILCORE_EXPORT IMAPAsyncSession : public Object {
     public:
@@ -102,7 +105,11 @@ namespace mailcore {
         
         virtual IMAPIdentity * serverIdentity();
         virtual IMAPIdentity * clientIdentity();
-        virtual String * gmailUserDisplayName();
+        virtual void setClientIdentity(IMAPIdentity * clientIdentity);
+
+        virtual String * gmailUserDisplayName() DEPRECATED_ATTRIBUTE;
+
+        virtual bool isIdleEnabled();
         
         virtual IMAPFolderInfoOperation * folderInfoOperation(String * folder);
         virtual IMAPFolderStatusOperation * folderStatusOperation(String * folder);
@@ -118,8 +125,10 @@ namespace mailcore {
         virtual IMAPOperation * unsubscribeFolderOperation(String * folder);
         
         virtual IMAPAppendMessageOperation * appendMessageOperation(String * folder, Data * messageData, MessageFlag flags, Array * customFlags = NULL);
-        
+        virtual IMAPAppendMessageOperation * appendMessageOperation(String * folder, String * messagePath, MessageFlag flags, Array * customFlags = NULL);
+
         virtual IMAPCopyMessagesOperation * copyMessagesOperation(String * folder, IndexSet * uids, String * destFolder);
+        virtual IMAPMoveMessagesOperation * moveMessagesOperation(String * folder, IndexSet * uids, String * destFolder);
         
         virtual IMAPOperation * expungeOperation(String * folder);
         
@@ -127,14 +136,15 @@ namespace mailcore {
                                                                          IndexSet * indexes);
         virtual IMAPFetchMessagesOperation * fetchMessagesByNumberOperation(String * folder, IMAPMessagesRequestKind requestKind,
                                                                             IndexSet * indexes);
-        virtual IMAPFetchMessagesOperation * syncMessagesByUID(String * folder, IMAPMessagesRequestKind requestKind,
-                                                               IndexSet * indexes, uint64_t modSeq);
+        virtual IMAPFetchMessagesOperation * syncMessagesByUIDOperation(String * folder, IMAPMessagesRequestKind requestKind,
+                                                                        IndexSet * indexes, uint64_t modSeq);
         
         virtual IMAPFetchContentOperation * fetchMessageByUIDOperation(String * folder, uint32_t uid, bool urgent = false);
         virtual IMAPFetchContentOperation * fetchMessageAttachmentByUIDOperation(String * folder, uint32_t uid, String * partID,
                                                                                  Encoding encoding, bool urgent = false);
         
         virtual IMAPFetchContentOperation * fetchMessageByNumberOperation(String * folder, uint32_t number, bool urgent = false);
+        virtual IMAPCustomCommandOperation * customCommand(String *command, bool urgent);
         virtual IMAPFetchContentOperation * fetchMessageAttachmentByNumberOperation(String * folder, uint32_t number, String * partID,
                                                                                     Encoding encoding, bool urgent = false);
         
@@ -156,7 +166,7 @@ namespace mailcore {
         virtual IMAPIdentityOperation * identityOperation(IMAPIdentity * identity);
         
         virtual IMAPOperation * connectOperation();
-        virtual IMAPOperation * checkAccountOperation();
+        virtual IMAPCheckAccountOperation * checkAccountOperation();
         virtual IMAPOperation * disconnectOperation();
         
         virtual IMAPCapabilityOperation * capabilityOperation();
@@ -200,7 +210,8 @@ namespace mailcore {
         dispatch_queue_t mDispatchQueue;
 #endif
         String * mGmailUserDisplayName;
-        
+        bool mIdleEnabled;
+
         virtual IMAPAsyncConnection * session();
         virtual IMAPAsyncConnection * matchingSessionForFolder(String * folder);
         virtual IMAPAsyncConnection * availableSession();

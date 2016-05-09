@@ -8,6 +8,7 @@ set(async_imap_files
   async/imap/MCIMAPCheckAccountOperation.cpp
   async/imap/MCIMAPConnectOperation.cpp
   async/imap/MCIMAPCopyMessagesOperation.cpp
+  async/imap/MCIMAPMoveMessagesOperation.cpp
   async/imap/MCIMAPCreateFolderOperation.cpp
   async/imap/MCIMAPDeleteFolderOperation.cpp
   async/imap/MCIMAPDisconnectOperation.cpp
@@ -17,6 +18,7 @@ set(async_imap_files
   async/imap/MCIMAPFetchFoldersOperation.cpp
   async/imap/MCIMAPFetchMessagesOperation.cpp
   async/imap/MCIMAPFetchNamespaceOperation.cpp
+  async/imap/MCIMAPFolderInfo.cpp
   async/imap/MCIMAPFolderInfoOperation.cpp
   async/imap/MCIMAPFolderStatusOperation.cpp
   async/imap/MCIMAPIdentityOperation.cpp
@@ -31,6 +33,7 @@ set(async_imap_files
   async/imap/MCIMAPStoreLabelsOperation.cpp
   async/imap/MCIMAPSubscribeFolderOperation.cpp
   async/imap/MCIMAPNoopOperation.cpp
+  async/imap/MCIMAPCustomCommandOperation.cpp
 )
 
 set(async_pop_files
@@ -64,6 +67,7 @@ set(async_nntp_files
   async/nntp/MCNNTPListNewsgroupsOperation.cpp
   async/nntp/MCNNTPFetchOverviewOperation.cpp
   async/nntp/MCNNTPFetchServerTimeOperation.cpp
+  async/nntp/MCNNTPPostOperation.cpp
   async/nntp/MCNNTPOperation.cpp
 )
 

@@ -28,6 +28,7 @@ src\core\basetypes\MCLibetpanTypes.h
 src\core\basetypes\MCOperationCallback.h
 src\core\basetypes\MCIterator.h
 src\core\basetypes\MCConnectionLogger.h
+src\core\basetypes\MCHTMLCleaner.h
 src\core\abstract\MCAbstractMessagePart.h
 src\core\abstract\MCAbstractPart.h
 src\core\abstract\MCAbstractMultipart.h
@@ -72,6 +73,7 @@ src\core\provider\MCProvider.h
 src\core\provider\MCMailProvidersManager.h
 src\core\provider\MCMailProvider.h
 src\core\provider\MCNetService.h
+src\core\provider\MCAccountValidator.h
 src\async\MCAsync.h
 src\async\smtp\MCAsyncSMTP.h
 src\async\smtp\MCSMTPAsyncSession.h
@@ -83,10 +85,12 @@ src\async\imap\MCIMAPOperation.h
 src\async\imap\MCIMAPFetchFoldersOperation.h
 src\async\imap\MCIMAPAppendMessageOperation.h
 src\async\imap\MCIMAPCopyMessagesOperation.h
+src\async\imap\MCIMAPMoveMessagesOperation.h
 src\async\imap\MCIMAPFetchMessagesOperation.h
 src\async\imap\MCIMAPFetchContentOperation.h
 src\async\imap\MCIMAPFetchParsedContentOperation.h
 src\async\imap\MCIMAPIdleOperation.h
+src\async\imap\MCIMAPFolderInfo.h
 src\async\imap\MCIMAPFolderInfoOperation.h
 src\async\imap\MCIMAPFolderStatusOperation.h
 src\async\imap\MCIMAPSearchOperation.h
@@ -112,6 +116,7 @@ src\async\nntp\MCNNTPFetchAllArticlesOperation.h
 src\async\nntp\MCNNTPListNewsgroupsOperation.h
 src\async\nntp\MCNNTPFetchOverviewOperation.h
 src\async\nntp\MCNNTPFetchServerTimeOperation.h
+src\async\nntp\MCNNTPPostOperation.h
 src\async\nntp\MCNNTPOperationCallback.h
 src\objc\MCObjC.h
 src\objc\utils\MCOUtils.h
@@ -156,6 +161,7 @@ src\objc\imap\MCOIMAPFolderStatusOperation.h
 src\objc\imap\MCOIMAPFolderStatus.h
 src\objc\imap\MCOIMAPAppendMessageOperation.h
 src\objc\imap\MCOIMAPCopyMessagesOperation.h
+src\objc\imap\MCOIMAPMoveMessagesOperation.h
 src\objc\imap\MCOIMAPFetchMessagesOperation.h
 src\objc\imap\MCOIMAPFetchContentOperation.h
 src\objc\imap\MCOIMAPFetchParsedContentOperation.h
@@ -193,8 +199,10 @@ src\objc\nntp\MCONNTPFetchAllArticlesOperation.h
 src\objc\nntp\MCONNTPListNewsgroupsOperation.h
 src\objc\nntp\MCONNTPFetchOverviewOperation.h
 src\objc\nntp\MCONNTPFetchServerTimeOperation.h
+src\objc\nntp\MCONNTPPostOperation.h
 src\objc\nntp\MCONNTPGroupInfo.h
 src\objc\provider\MCOProvider.h
 src\objc\provider\MCONetService.h
 src\objc\provider\MCOMailProvider.h
 src\objc\provider\MCOMailProvidersManager.h
+src\objc\provider\MCOAccountValidator.h

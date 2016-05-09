@@ -68,10 +68,14 @@ namespace mailcore {
         virtual SMTPOperation * sendMessageOperation(Data * messageData);
         virtual SMTPOperation * sendMessageOperation(Address * from, Array * recipients,
                                                      Data * messageData);
+        virtual SMTPOperation * sendMessageOperation(Address * from, Array * recipients,
+                                                     String * filename);
         virtual SMTPOperation * checkAccountOperation(Address * from);
         
         virtual SMTPOperation * noopOperation();
         
+        virtual SMTPOperation * disconnectOperation();
+
     public: // private
         virtual void runOperation(SMTPOperation * operation);
         virtual SMTPSession * session();

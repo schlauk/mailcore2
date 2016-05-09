@@ -65,7 +65,8 @@ namespace mailcore {
         
         virtual IMAPIdentity * serverIdentity();
         virtual IMAPIdentity * clientIdentity();
-        
+        virtual void setClientIdentity(IMAPIdentity * identity);
+
         virtual void select(String * folder, ErrorCode * pError);
         virtual IMAPFolderStatus * folderStatus(String * folder, ErrorCode * pError);
         
@@ -85,10 +86,15 @@ namespace mailcore {
                                    IMAPProgressCallback * progressCallback, uint32_t * createdUID, ErrorCode * pError);
         virtual void appendMessageWithCustomFlagsAndDate(String * folder, Data * messageData, MessageFlag flags, Array * customFlags, time_t date,
                                                          IMAPProgressCallback * progressCallback, uint32_t * createdUID, ErrorCode * pError);
+        virtual void appendMessageWithCustomFlagsAndDate(String * folder, String * messagePath, MessageFlag flags, Array * customFlags, time_t date,
+                                                         IMAPProgressCallback * progressCallback, uint32_t * createdUID, ErrorCode * pError);
+
+        virtual void copyMessages(String * folder, IndexSet * uidSet, String * destFolder,
+                                  HashMap ** pUidMapping, ErrorCode * pError);
         
-        void copyMessages(String * folder, IndexSet * uidSet, String * destFolder,
-                          HashMap ** pUidMapping, ErrorCode * pError);
-        
+        virtual void moveMessages(String * folder, IndexSet * uidSet, String * destFolder,
+                                  HashMap ** pUidMapping, ErrorCode * pError);
+
         virtual void expunge(String * folder, ErrorCode * pError);
         
         virtual Array * /* IMAPMessage */ fetchMessagesByUID(String * folder, IMAPMessagesRequestKind requestKind,
@@ -107,6 +113,7 @@ namespace mailcore {
                                                                                 IndexSet * numbers,
                                                                                 IMAPProgressCallback * progressCallback,
                                                                                 Array * extraHeaders, ErrorCode * pError);
+        virtual String * customCommand(String * command, ErrorCode * pError);
 
         virtual Data * fetchMessageByUID(String * folder, uint32_t uid,
                                          IMAPProgressCallback * progressCallback, ErrorCode * pError);
@@ -155,7 +162,7 @@ namespace mailcore {
         
         virtual void login(ErrorCode * pError);
         
-        IMAPIdentity * identity(IMAPIdentity * clientIdentity, ErrorCode * pError);
+        virtual IMAPIdentity * identity(IMAPIdentity * clientIdentity, ErrorCode * pError);
         
         virtual IndexSet * capability(ErrorCode * pError);
         
@@ -175,9 +182,9 @@ namespace mailcore {
         virtual bool isXOAuthEnabled();
         virtual bool isNamespaceEnabled();
         virtual bool isCompressionEnabled();
-        virtual bool allowsNewPermanentFlags(); 
+        virtual bool allowsNewPermanentFlags();
       
-        virtual String * gmailUserDisplayName();
+        virtual String * gmailUserDisplayName() DEPRECATED_ATTRIBUTE;
         
         virtual void setConnectionLogger(ConnectionLogger * logger);
         virtual ConnectionLogger * connectionLogger();
@@ -200,6 +207,8 @@ namespace mailcore {
         
         /** Check if the automatic query of the capabilities of the IMAP server is enabled. */
         virtual bool isAutomaticConfigurationEnabled();
+
+        virtual String * loginResponse();
         
     public: // private
         virtual void loginIfNeeded(ErrorCode * pError);
@@ -209,7 +218,11 @@ namespace mailcore {
         virtual bool isAutomaticConfigurationDone();
         virtual void resetAutomaticConfigurationDone();
         virtual void applyCapabilities(IndexSet * capabilities);
-        
+        virtual IndexSet * storedCapabilities();
+        virtual void lockConnectionLogger();
+        virtual void unlockConnectionLogger();
+        virtual ConnectionLogger * connectionLoggerNoLock();
+
     private:
         String * mHostname;
         unsigned int mPort;
@@ -231,6 +244,7 @@ namespace mailcore {
         bool mXListEnabled;
         bool mCondstoreEnabled;
         bool mQResyncEnabled;
+        bool mXYMHighestModseqEnabled;
         bool mIdentityEnabled;
         bool mXOauth2Enabled;
         bool mNamespaceEnabled;
@@ -249,12 +263,12 @@ namespace mailcore {
         unsigned int mLastFetchedSequenceNumber;
         String * mCurrentFolder;
         pthread_mutex_t mIdleLock;
-        bool mCanIdle;
         int mState;
         mailimap * mImap;
         IMAPProgressCallback * mProgressCallback;
         unsigned int mProgressItemsCount;
         ConnectionLogger * mConnectionLogger;
+        pthread_mutex_t mConnectionLoggerLock;
         bool mAutomaticConfigurationEnabled;
         bool mAutomaticConfigurationDone;
         bool mShouldDisconnect;
@@ -272,8 +286,10 @@ namespace mailcore {
         void unsetup();
         char fetchDelimiterIfNeeded(char defaultDelimiter, ErrorCode * pError);
         IMAPSyncResult * fetchMessages(String * folder, IMAPMessagesRequestKind requestKind,
-                                       bool fetchByUID, struct mailimap_set * imapset, uint64_t modseq,
-                                       HashMap * mapping, uint32_t startUid, IMAPProgressCallback * progressCallback,
+                                       bool fetchByUID, struct mailimap_set * imapset,
+                                       IndexSet * uidsFilter, IndexSet * numbersFilter,
+                                       uint64_t modseq,
+                                       HashMap * mapping, IMAPProgressCallback * progressCallback,
                                        Array * extraHeaders, ErrorCode * pError);
         void capabilitySetWithSessionState(IndexSet * capabilities);
         bool enableFeature(String * feature);

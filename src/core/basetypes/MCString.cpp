@@ -8,7 +8,9 @@
 
 #include <string.h>
 #include <stdlib.h>
-#if !DISABLE_ICU
+#if DISABLE_ICU
+#include <unicode/ustring.h>
+#else
 #include <unicode/ustring.h>
 #include <unicode/ucnv.h>
 #include <unicode/utypes.h>
@@ -39,6 +41,15 @@
 #include "MCBase64.h"
 #include "MCIterator.h"
 #include "ConvertUTF.h"
+#include "MCLock.h"
+
+#if defined(_MSC_VER)
+#define PATH_SEPARATOR_CHAR '\\'
+#define PATH_SEPARATOR_STRING "\\"
+#else
+#define PATH_SEPARATOR_CHAR '/'
+#define PATH_SEPARATOR_STRING "/"
+#endif
 
 using namespace mailcore;
 
@@ -46,7 +57,7 @@ static String * s_unicode160 = NULL;
 static String * s_unicode133 = NULL;
 static String * s_unicode2028 = NULL;
 
-#if DISABLE_ICU
+#if DISABLE_ICU && 0
 static int32_t u_strlen(const UChar *s) {
     if (s == NULL) {
         return 0;
@@ -814,7 +825,9 @@ String::String(const char * UTF8Characters)
 {
     mUnicodeChars = NULL;
     reset();
-    allocate((unsigned int) strlen(UTF8Characters), true);
+    if (UTF8Characters != NULL) {
+        allocate((unsigned int) strlen(UTF8Characters), true);
+    }
     appendUTF8Characters(UTF8Characters);
 }
 
@@ -881,7 +894,7 @@ void String::allocate(unsigned int length, bool force)
 
 String * String::string()
 {
-    return stringWithCharacters(NULL);
+    return stringWithCharacters(NULL, 0);
 }
 
 String * String::stringWithData(Data * data, const char * charset)
@@ -917,12 +930,18 @@ String * String::stringWithVUTF8Format(const char * format, va_list ap)
 
 String * String::stringWithUTF8Characters(const char * UTF8Characters)
 {
+    if (UTF8Characters == NULL) {
+        return NULL;
+    }
     String * result = new String(UTF8Characters);
     return (String *) result->autorelease();
 }
 
 String * String::stringWithCharacters(const UChar * characters)
 {
+    if (characters == NULL) {
+        return NULL;
+    }
     String * result = new String(characters);
     return (String *) result->autorelease();
 }
@@ -1142,6 +1161,10 @@ String * String::stringByDecodingMIMEHeaderValue(const char * phrase)
         MCLog("could not decode: %s\n", phrase);
     }
 
+    if (result == NULL) {
+      result = string();
+    }
+
     free(decoded);
     
     return result;
@@ -1185,6 +1208,9 @@ Data * String::encodedMIMEHeaderValueForSubject()
 
 int String::compareWithCaseSensitive(String * otherString, bool caseSensitive)
 {
+    if (otherString == NULL) {
+        return 1;
+    }
     if ((length() == 0) && (otherString->length() == 0)) {
         return 0;
     }
@@ -1197,16 +1223,21 @@ int String::compareWithCaseSensitive(String * otherString, bool caseSensitive)
     }
     
     if (otherString->unicodeCharacters() == NULL) {
-        return -1;
+        return 1;
     }
     
 #if DISABLE_ICU
-    CFStringRef cfThis = CFStringCreateWithCharactersNoCopy(NULL, mUnicodeChars, mLength, kCFAllocatorNull);
-    CFStringRef cfOther = CFStringCreateWithCharactersNoCopy(NULL, otherString->mUnicodeChars, otherString->mLength, kCFAllocatorNull);
-    CFComparisonResult result = CFStringCompare(cfThis, cfOther, caseSensitive ? 0 : kCFCompareCaseInsensitive);
-    CFRelease(cfThis);
-    CFRelease(cfOther);
-    return result;
+    if (caseSensitive) {
+        return u_strcmp(unicodeCharacters(), otherString->unicodeCharacters());
+    }
+    else {
+        CFStringRef cfThis = CFStringCreateWithCharactersNoCopy(NULL, mUnicodeChars, mLength, kCFAllocatorNull);
+        CFStringRef cfOther = CFStringCreateWithCharactersNoCopy(NULL, otherString->mUnicodeChars, otherString->mLength, kCFAllocatorNull);
+        CFComparisonResult result = CFStringCompare(cfThis, cfOther, kCFCompareCaseInsensitive);
+        CFRelease(cfThis);
+        CFRelease(cfOther);
+        return result;
+    }
 #else
     if (caseSensitive) {
         return u_strcmp(unicodeCharacters(), otherString->unicodeCharacters());
@@ -1337,7 +1368,12 @@ void String::appendBytes(const char * bytes, unsigned int length, const char * c
     }
 #else
     UErrorCode err;
-    
+
+    // ICU uses "IMAP-mailbox-name" as charset name.
+    if (strcasecmp(charset, "mutf-7") == 0) {
+        charset = "IMAP-mailbox-name";
+    }
+
     err = U_ZERO_ERROR;
     UConverter * converter = ucnv_open(charset, &err); 
     if (converter == NULL) {
@@ -1544,6 +1580,23 @@ struct parserState {
 
 static void appendQuote(struct parserState * state);
 
+static inline int isWhitespace(UChar ch)
+{
+    switch (ch) {
+        case ' ':
+        case '\t':
+        case '\n':
+        case '\f':
+        case '\r':
+        case 160:
+        case 133:
+        case 0x2028:
+        case 0x2029:
+            return true;
+    }
+    return false;
+}
+
 static void charactersParsed(void * context,
     const xmlChar * ch, int len)
 /*" Callback function for stringByStrippingHTML. "*/
@@ -1563,8 +1616,21 @@ static void charactersParsed(void * context,
     String * modifiedString;
     modifiedString = new String((const char *) ch, len);
     modifiedString->autorelease();
+    bool hasTerminalWhitespace = false;
+    bool hasInitialWhitespace = false;
+    if (modifiedString->length() > 0) {
+        hasInitialWhitespace = isWhitespace(modifiedString->characterAtIndex(0));
+        hasTerminalWhitespace = isWhitespace(modifiedString->characterAtIndex(modifiedString->length() - 1));
+    }
     modifiedString = modifiedString->stripWhitespace();
+    if (hasTerminalWhitespace) {
+        if (modifiedString->length() == 0) {
+            hasInitialWhitespace = false;
+        }
+        modifiedString->appendString(MCSTR(" "));
+    }
 
+    /*
     if (modifiedString->length() > 0) {
         if (state->lastCharIsWhitespace) {
             if (modifiedString->characterAtIndex(0) == ' ') {
@@ -1572,6 +1638,7 @@ static void charactersParsed(void * context,
             }
         }
     }
+     */
 
     if (modifiedString->length() > 0) {
         bool lastIsWhiteSpace;
@@ -1606,6 +1673,11 @@ static void charactersParsed(void * context,
                 appendQuote(state);
                 state->hasQuote = true;
             }
+            if (hasInitialWhitespace) {
+                if (!state->lastCharIsWhitespace) {
+                    result->appendString(MCSTR(" "));
+                }
+            }
             result->appendString(modifiedString);
             state->lastCharIsWhitespace = lastIsWhiteSpace;
             state->hasText = true;
@@ -1635,13 +1707,35 @@ static void appendQuote(struct parserState * state)
     state->lastCharIsWhitespace = true;
 }
 
+static void cleanTerminalSpace(String * result)
+{
+    if (result->length() > 0) {
+        if (result->characterAtIndex(result->length() - 1) == ' ') {
+            result->deleteCharactersInRange(RangeMake(result->length() - 1, 1));
+        }
+    }
+}
+
+static bool isPreviousLineBlankLine(String * result)
+{
+    if (result->length() < 2) {
+        return false;
+    }
+    return (result->characterAtIndex(result->length() - 1) == '\n') && (result->characterAtIndex(result->length() - 2) == '\n');
+}
+
 static void returnToLine(struct parserState * state)
 {
     if (!state->hasQuote) {
         appendQuote(state);
         state->hasQuote = true;
     }
-    state->result->appendString(MCSTR("\n"));
+
+    cleanTerminalSpace(state->result);
+
+    if (!isPreviousLineBlankLine(state->result)) {
+        state->result->appendString(MCSTR("\n"));
+    }
     state->hasText = false;
     state->lastCharIsWhitespace = true;
     state->hasQuote = false;
@@ -1659,9 +1753,9 @@ static void returnToLineAtBeginningOfBlock(struct parserState * state)
 static Set * blockElements(void)
 {
     static Set * elements = NULL;
-    pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    MC_LOCK_TYPE lock = MC_LOCK_INITIAL_VALUE;
     
-    pthread_mutex_lock(&lock);
+    MC_LOCK(&lock);
     if (elements == NULL) {
         elements = new Set();
         elements->addObject(MCSTR("address"));
@@ -1692,7 +1786,7 @@ static Set * blockElements(void)
         elements->addObject(MCSTR("tr"));
         elements->addObject(MCSTR("td"));
     }
-    pthread_mutex_unlock(&lock);
+    MC_UNLOCK(&lock);
     
     return elements;
 }
@@ -1740,7 +1834,7 @@ static void elementStarted(void * ctx, const xmlChar * name, const xmlChar ** at
         AutoreleasePool * pool;
         String * link = NULL;
         HashMap * attributes;
-        
+
         pool = new AutoreleasePool();
         attributes = dictionaryFromAttributes(atts);
         if (attributes != NULL) {
@@ -1891,6 +1985,9 @@ static void elementEnded(void * ctx, const xmlChar * name)
                 if (offset != state->result->length()) {
                     if (link->length() > 0) {
                         if (!state->result->hasSuffix(link)) {
+                            if (!state->lastCharIsWhitespace) {
+                                state->result->appendUTF8Characters(" ");
+                            }
                             state->result->appendUTF8Characters("(");
                             state->result->appendString(link);
                             state->result->appendUTF8Characters(")");
@@ -1943,9 +2040,9 @@ static void commentParsed(void * ctx, const xmlChar * value)
 void initializeLibXML()
 {
     static bool initDone = false;
-    static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    static MC_LOCK_TYPE lock = MC_LOCK_INITIAL_VALUE;
     
-    pthread_mutex_lock(&lock);
+    MC_LOCK(&lock);
     if (!initDone) {
         initDone = true;
         xmlInitParser();
@@ -1955,7 +2052,7 @@ void initializeLibXML()
         xmlSetStructuredErrorFunc(xmlGenericErrorContext,
                                   &structuredError);
     }
-    pthread_mutex_unlock(&lock);
+    MC_UNLOCK(&lock);
 }
 
 String * String::flattenHTMLAndShowBlockquoteAndLink(bool showBlockquote, bool showLink)
@@ -1996,15 +2093,11 @@ String * String::flattenHTMLAndShowBlockquoteAndLink(bool showBlockquote, bool s
         MCLog("Leak of %d blocks found in htmlSAXParseDoc",
             xmlMemBlocks() - mem_base);
     }
-    
+
+    cleanTerminalSpace(state.result);
     state.paragraphSpacingStack->release();
     state.linkStack->release();
-    
-    UChar ch[2];
-    ch[0] = 160;
-    ch[1] = 0;
-    result->replaceOccurrencesOfString(String::stringWithCharacters(ch), MCSTR(" "));
-    
+
     return result;
 }
 
@@ -2020,25 +2113,69 @@ String * String::flattenHTML()
 
 String * String::stripWhitespace()
 {
-    String *str = (String *)copy();
-    
-    str->replaceOccurrencesOfString(MCSTR("\t"), MCSTR(" "));
-    str->replaceOccurrencesOfString(MCSTR("\n"), MCSTR(" "));
-    str->replaceOccurrencesOfString(MCSTR("\v"), MCSTR(" "));
-    str->replaceOccurrencesOfString(MCSTR("\f"), MCSTR(" "));
-    str->replaceOccurrencesOfString(MCSTR("\r"), MCSTR(" "));
-    str->replaceOccurrencesOfString(s_unicode160, MCSTR(" "));
-    str->replaceOccurrencesOfString(s_unicode133, MCSTR(" "));
-    str->replaceOccurrencesOfString(s_unicode2028, MCSTR(" "));
+    String * str = (String *)copy();
 
-    while (str->replaceOccurrencesOfString(MCSTR("  "), MCSTR(" ")) > 0) {
-        /* do nothing */
+    // replace space-like characters with space.
+    const UChar * source = str->unicodeCharacters();
+    UChar * dest = str->mUnicodeChars;
+    while (* source != 0) {
+        if (* source == '\t') {
+            * dest = ' ';
+        }
+        else if (* source == '\n') {
+            * dest = ' ';
+        }
+        else if (* source == '\f') {
+            * dest = ' ';
+        }
+        else if (* source == '\r') {
+            * dest = ' ';
+        }
+        else if (* source == 160) {
+            * dest = ' ';
+        }
+        else if (* source == 133) {
+            * dest = ' ';
+        }
+        else if (* source == 0x2028) {
+            * dest = ' ';
+        }
+        else if (* source == 0x2029) {
+            * dest = ' ';
+        }
+        else {
+            * dest = * source;
+        }
+        dest ++;
+        source ++;
     }
-    while (str->hasPrefix(MCSTR(" "))) {
-        str->deleteCharactersInRange(RangeMake(0, 1));
+
+    // skip spaces at the beginning.
+    source = str->unicodeCharacters();
+    dest = str->mUnicodeChars;
+    while (* source == ' ') {
+        source ++;
     }
-    while (str->hasSuffix(MCSTR(" "))) {
-        str->deleteCharactersInRange(RangeMake(str->length() - 1, 1));
+
+    // copy content
+    while (* source != 0) {
+        while ((* source == ' ') && (* (source + 1) == ' ')) {
+            source ++;
+        }
+        * dest = * source;
+        source ++;
+        dest ++;
+    }
+    * dest = 0;
+    str->mLength = (unsigned int) (dest - str->mUnicodeChars);
+
+    // skip spaces at the end.
+    if (str->mLength > 0) {
+        while (* (dest - 1) == ' ') {
+            dest --;
+        }
+        * dest = 0;
+        str->mLength = (unsigned int) (dest - str->mUnicodeChars);
     }
 
     str->autorelease();
@@ -2072,7 +2209,7 @@ String * String::lastPathComponent()
     // TODO: Improve Windows compatibility.
     if (mUnicodeChars == NULL)
         return MCSTR("");
-    UChar * component = u_strrchr(mUnicodeChars, '/');
+    UChar * component = u_strrchr(mUnicodeChars, PATH_SEPARATOR_CHAR);
     if (component == NULL)
         return (String *) this->copy()->autorelease();
     return String::stringWithCharacters(component + 1);
@@ -2122,13 +2259,18 @@ Data * String::dataUsingEncoding(const char * charset)
     UErrorCode err;
     Data * data;
     
+    // ICU uses "IMAP-mailbox-name" as charset name.
+    if (strcasecmp(charset, "mutf-7") == 0) {
+        charset = "IMAP-mailbox-name";
+    }
+
     err = U_ZERO_ERROR;
     UConverter * converter = ucnv_open(charset, &err); 
     if (converter == NULL) {
         MCLog("invalid charset %s %i", charset, err);
         return NULL;
     }
-    
+
     err = U_ZERO_ERROR;
     int32_t destLength = ucnv_fromUChars(converter, NULL, 0, mUnicodeChars, mLength, &err);
     int32_t destCapacity = destLength + 1;
@@ -2170,8 +2312,8 @@ String * String::stringByAppendingPathComponent(String * component)
     String * result = (String *) this->copy()->autorelease();
     if (result->length() > 0) {
         UChar lastChar = result->unicodeCharacters()[result->length() - 1];
-        if (lastChar != '/') {
-            result->appendUTF8Characters("/");
+        if (lastChar != PATH_SEPARATOR_CHAR) {
+            result->appendUTF8Characters(PATH_SEPARATOR_STRING);
         }
     }
     result->appendString(component);
@@ -2181,24 +2323,24 @@ String * String::stringByAppendingPathComponent(String * component)
 String * String::stringByDeletingLastPathComponent()
 {
     String * currentString = this;
-    if (currentString->isEqual(MCSTR("/"))) {
+    if (currentString->isEqual(MCSTR(PATH_SEPARATOR_STRING))) {
         return currentString;
     }
     if (currentString->length() == 0) {
         return currentString;
     }
-    if (currentString->unicodeCharacters()[currentString->length() - 1] == '/') {
+    if (currentString->unicodeCharacters()[currentString->length() - 1] == PATH_SEPARATOR_CHAR) {
         currentString = currentString->substringToIndex(currentString->length() - 1);
     }
     String * component = currentString->lastPathComponent();
     currentString = currentString->substringToIndex(currentString->length() - component->length());
-    if (currentString->isEqual(MCSTR("/"))) {
+    if (currentString->isEqual(MCSTR(PATH_SEPARATOR_STRING))) {
         return currentString;
     }
     if (currentString->length() == 0) {
         return currentString;
     }
-    if (currentString->unicodeCharacters()[currentString->length() - 1] == '/') {
+    if (currentString->unicodeCharacters()[currentString->length() - 1] == PATH_SEPARATOR_CHAR) {
         currentString = currentString->substringToIndex(currentString->length() - 1);
     }
     return currentString;
@@ -2222,10 +2364,29 @@ Array * String::componentsSeparatedByString(String * separator)
     p = mUnicodeChars;
     while (1) {
         UChar * location;
+#if 0
         location = u_strstr(p, separator->unicodeCharacters());
         if (location == NULL) {
             break;
         }
+#else
+        location = NULL;
+        while (location == NULL) {
+            int remaining = length() - (int) (p - mUnicodeChars);
+            location = (UChar *) memmem(p, remaining * sizeof(UChar), separator->unicodeCharacters(), separator->length() * sizeof(UChar));
+            if (location == NULL) {
+                break;
+            }
+            // If it's odd, it's an invalid location. Keep looking for the pattern.
+            if (((char *) location - (char *) p) % sizeof(UChar) != 0) {
+                p = (UChar *) (((char *) location) + 1);
+                location = NULL;
+            }
+        }
+        if (location == NULL) {
+            break;
+        }
+#endif
         
         unsigned int length = (unsigned int) (location - p);
         String * value = new String(p, length);
@@ -2235,6 +2396,11 @@ Array * String::componentsSeparatedByString(String * separator)
         p = location + separator->length();
     }
     unsigned int length = (unsigned int) (mLength - (p - mUnicodeChars));
+    if (length > mLength) {
+        fprintf(stderr, "trying to split string: |%s| |%s| %i %i %p %p\n", MCUTF8(this), MCUTF8(separator), length, mLength, p, mUnicodeChars);
+        return result;
+    }
+    MCAssert(length <= mLength);
     String * value = new String(p, length);
     result->addObject(value);
     value->release();
@@ -2324,7 +2490,7 @@ String * String::substringWithRange(Range range)
 }
 
 static chash * uniquedStringHash = NULL;
-static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+static MC_LOCK_TYPE lock = MC_LOCK_INITIAL_VALUE;
 
 static void initUniquedStringHash()
 {
@@ -2338,20 +2504,24 @@ String * String::uniquedStringWithUTF8Characters(const char * UTF8Characters)
     static pthread_once_t once = PTHREAD_ONCE_INIT;
     int r;
     
+    if (UTF8Characters == NULL) {
+        return NULL;
+    }
+
     pthread_once(&once, initUniquedStringHash);
     key.data = (void *) UTF8Characters;
     key.len = (unsigned int) strlen(UTF8Characters);
-    pthread_mutex_lock(&lock);
+    MC_LOCK(&lock);
     r = chash_get(uniquedStringHash, &key, &value);
     if (r == 0) {
-        pthread_mutex_unlock(&lock);
+        MC_UNLOCK(&lock);
         return (String *) value.data;
     }
     else {
         value.data = new String(UTF8Characters);
         value.len = 0;
         chash_set(uniquedStringHash, &key, &value, NULL);
-        pthread_mutex_unlock(&lock);
+        MC_UNLOCK(&lock);
         return (String *) value.data;
     }
 }
@@ -2490,6 +2660,102 @@ Data * String::decodedBase64Data()
     char * decoded = MCDecodeBase64(utf8, encoded_len, &decoded_len);
     Data * result = Data::dataWithBytes(decoded, decoded_len);
     free(decoded);
+    return result;
+}
+
+static int hexValue(const char * code) {
+    int value = 0;
+    const char * pch = code;
+    for (;;) {
+        int digit = *pch++;
+        if (digit >= '0' && digit <= '9') {
+            value += digit - '0';
+        }
+        else if (digit >= 'A' && digit <= 'F') {
+            value += digit - 'A' + 10;
+        }
+        else if (digit >= 'a' && digit <= 'f') {
+            value += digit - 'a' + 10;
+        }
+        else {
+            return -1;
+        }
+        if (pch == code + 2) {
+            return value;
+        }
+        value <<= 4;
+    }
+}
+
+String * String::urlDecodedString()
+{
+    Data * sourceData = dataUsingEncoding();
+    const char * source = sourceData->bytes();
+    char * start = (char *) malloc(sourceData->length() + 1);
+    char * dest = start;
+    unsigned int i = 0;
+    while (i < sourceData->length()) {
+        switch (source[i]) {
+            case '%':
+            {
+                if (i + 2 < sourceData->length()) {
+                    int value = hexValue(&source[i + 1]);
+                    if (value >= 0) {
+                        *(dest++) = value;
+                        i += 3;
+                    }
+                    else {
+                        *dest++ = '?';
+                        i ++;
+                    }
+                }
+                else {
+                    *dest++ = '?';
+                    i ++;
+                }
+                break;
+            }
+            default:
+            {
+                *dest++ = source[i];
+                i ++;
+                break;
+            }
+        }
+    }
+    * dest = 0;
+    String * result = String::stringWithUTF8Characters(start);
+    free(start);
+    return result;
+}
+
+static inline bool isValidUrlChar(char ch) {
+    return strchr("$&+,/:;=?@[]#!'()* ", ch) == NULL;
+}
+
+String * String::urlEncodedString()
+{
+    const char * digits = "0123456789ABCDEF";
+    Data * sourceData = dataUsingEncoding();
+    const char * source = sourceData->bytes();
+    char * start = (char *) malloc(sourceData->length() * 3 + 1);
+    char * dest = start;
+    unsigned int i = 0;
+    while (i < sourceData->length()) {
+        unsigned char ch = (unsigned char) source[i];
+        if (isValidUrlChar(ch)) {
+            *dest++ = ch;
+        } else {
+            *dest++ = '%';
+            *dest++ = digits[(ch >> 4) & 0x0F];
+            *dest++ = digits[       ch & 0x0F];
+        }
+        i ++;
+    }
+    *dest = 0;
+    String * result = String::stringWithUTF8Characters(dest);
+    free(start);
+
     return result;
 }
 
